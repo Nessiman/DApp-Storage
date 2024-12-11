@@ -1,0 +1,38 @@
+/* src/Components/MyFolder.css */
+
+.folder-container {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+.folder-list {
+    margin-top: 10px;
+}
+
+.folder-item {
+    cursor: pointer;
+    color: #495054;
+}
+
+.folder-item:hover {
+    background-color: #e9ecef;
+}
+
+.btn-new-folder {
+    margin-bottom: 15px;
+}
+
+.all-files-section, .selected-folder-section {
+    margin-top: 20px;
+}
+
+.file-item {
+    color: #495054;
+    cursor: pointer;
+}
+
+.file-item:hover {
+    color: #0056b3; 
+}
