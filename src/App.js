@@ -9,6 +9,7 @@ import DocumentDetail from "./Components/DocumentDetail"; // Import DocumentDeta
 import FolderPage from "./Components/FolderPage";
 import { Web3Provider } from "./Components/Web3Context";
 
+
 function App() {
   const [account, setAccount] = useState(null); // Menyimpan akun MetaMask
   const [files, setFiles] = useState([]);
@@ -44,6 +45,7 @@ function App() {
   // Fungsi untuk logout
   const handleLogout = () => {
     setAccount(null); // Hapus akun dari state
+    localStorage.removeItem("userAddress");
     navigate("/"); // Mengarahkan ke halaman login atau home
   };
 
@@ -73,6 +75,10 @@ function App() {
 
   // Mengambil data file dan folder dari localStorage saat aplikasi dimuat
   useEffect(() => {
+    const storedAccount = localStorage.getItem("userAddress");
+    if (storedAccount){
+      setAccount(storedAccount);
+    }
     const storedFiles = JSON.parse(localStorage.getItem("ipfsFiles")) || [];
     const storedFolders = JSON.parse(localStorage.getItem("folders")) || [];
     setFiles(storedFiles);

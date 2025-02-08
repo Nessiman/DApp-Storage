@@ -27,6 +27,15 @@ function DocumentGateway() {
         return;
       }
 
+      try {
+        await contract.methods.recordAccess(cid).send({ from: account });
+        alert('Transaksi berhasil, akses tercatat di blockchain');
+      }catch (error){
+        alert('Transaksi dibatalkan. Dokumen tidak bisa diakses');
+        setLoading(false);
+        return;
+      }
+
       // Ambil metadata dokumen
       const document = await contract.methods.documents(cid).call();
       setOwner(document.uploader);
@@ -42,8 +51,6 @@ function DocumentGateway() {
 
       setDocumentUrl(url); // Simpan URL dokumen untuk ditampilkan
 
-      await contract.methods.recordAccess(cid).send({ from: account});
-      alert('akses tercatat di blockchain');
     } catch (error) {
       console.error('Terjadi kesalahan saat mencari dokumen:', error);
       alert('Terjadi kesalahan saat mencari dokumen!');

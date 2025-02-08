@@ -1,37 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Web3 from "web3";
 
 function Navbar({ account, onLogout }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [navbarOpen, setNavbarOpen] = useState(false); // Menambahkan state untuk navbar toggle
+  const [balance, setBalance] = useState(null);
 
-  // Fungsi untuk toggle dropdown
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
-  };
-
-  // Fungsi untuk toggle navbar collapse
-  const toggleNavbar = () => {
-    setNavbarOpen(!navbarOpen);
-  };
-
+  useEffect(() => {
+    const web3 = new Web3(window.ethereum);
+    const getBalance = async () => {
+      if (account){
+        const balanceInWei = await web3.eth.getBalance(account);
+        const balanceInEth = web3.utils.fromWei(balanceInWei, "ether");
+        setBalance(balanceInEth);
+      }
+    };
+    
+    getBalance();
+  }, [account]);
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container-fluid">
         <Link className="navbar-brand" to="/">
           Document DApp
         </Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          onClick={toggleNavbar} // Menggunakan state React untuk toggle
-          aria-controls="navbarNav"
-          aria-expanded={navbarOpen ? "true" : "false"}
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className={`collapse navbar-collapse ${navbarOpen ? "show" : ""}`} id="navbarNav">
+        <div className="navbar-nav ms-auto">
           <ul className="navbar-nav">
             <li className="nav-item">
               <Link className="nav-link active" to="/">
@@ -49,27 +41,40 @@ function Navbar({ account, onLogout }) {
               </Link>
             </li>
           </ul>
+          {/* MetaMask Account & Balance */}
           {account && (
-            <div className="ml-auto dropdown">
+            <div className="nav-item dropdown ms-3">
               <button
                 className="btn btn-light dropdown-toggle"
-                onClick={toggleDropdown} // Mengatur dropdown menggunakan state
+                type="button"
+                id="accountDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
               >
-                <i className="fas fa-user-circle"></i> {/* Ikon user */}
+                <i className="fas fa-user-circle"></i> {account.slice(0, 6)}...{account.slice(-4)}
               </button>
-              {dropdownOpen && (
-                <div className="dropdown-menu dropdown-menu-end">
+              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
+                <li>
                   <p className="dropdown-item">
-                    <strong>Account</strong> <br /> {account}
+                    <strong>Account</strong>: {account}
                   </p>
+                </li>
+                {balance && (
+                  <li>
+                  <p className="dropdown-item">
+                    <strong>Balance</strong>: {balance} ETH
+                  </p>
+                </li>
+                )}
+                <li>
                   <button
                     className="dropdown-item text-danger"
                     onClick={onLogout}
                   >
                     Logout
                   </button>
-                </div>
-              )}
+                </li>
+              </ul>
             </div>
           )}
         </div>

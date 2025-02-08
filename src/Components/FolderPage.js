@@ -2,8 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWeb3 } from "./Web3Context";
 import pinata from "../utils/config"; // Pastikan pinata sudah dikonfigurasi
-
-
+import axios from "axios";
 
 function FolderPage() {
   const [fileList, setFileList] = useState([]);
@@ -16,12 +15,46 @@ function FolderPage() {
   const { contract, account } = useWeb3();
   const navigate = useNavigate();
 
+  const groupId = folderData ? folderData.id : null;
+
+  const fetchFilesByGroup = useCallback(async () => {
+    try {
+      console.log("Fetching files by group...");
+      if (!folderData || !folderData.id) {
+        console.error("Id grup tidak ditemukan");
+        return;
+      }
+  
+      const response = await pinata.listFiles().group(folderData.id);
+  
+      // Transform the response to extract relevant file details
+      const fileDetails = response.map((item) => {
+        const fileName = item.metadata?.name || "Unknown File"; // Default jika nama file tidak ada
+        return {
+          id: item.id,
+          ipfsHash: item.ipfs_pin_hash,
+          size: item.size,
+          mimeType: item.mime_type,
+          datePinned: item.date_pinned,
+          fileName, // Nama file dari metadata
+        };
+      });
+  
+      console.log("File details:", fileDetails);
+      setFileList(fileDetails);
+    } catch (error) {
+      console.error("Gagal fetch files by grup:", error);
+    }
+  }, [folderData]);
+  
+    
   useEffect(() => {
     if (folderData) {
       setFolderName(folderData.name); // Atur nama folder
       setFileList(folderData.files || []); // Ambil daftar file dari data folder
+      fetchFilesByGroup();
     }
-  }, [folderData]);
+  }, [folderData, fetchFilesByGroup]);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -38,6 +71,11 @@ function FolderPage() {
       return;
     }
 
+    if(!groupId){
+      alert("Grup tidak ditemukan");
+      return;
+    }
+
     setIsUploading(true);
     try {
       if (!(file instanceof Blob)) {
@@ -50,8 +88,13 @@ function FolderPage() {
         return;
       }
 
+      if(!groupId){
+        alert("Grup tidak ditemukan");
+        return;
+      }
+
       // Mengunggah file ke IPFS menggunakan Pinata
-      const response = await pinata.upload.file(file);
+      const response = await pinata.upload.file(file).group(groupId);
 
       const uploadTime = new Date().toISOString();
 
@@ -168,7 +211,7 @@ function FolderPage() {
         {fileList.length > 0 ? (
           fileList.map((file, index) => (
             <li key={index} className="list-group-item file-item">
-              {file.name} {renderUploadStatus(file)}
+              {file.fileName || "No name"} {renderUploadStatus(file)}
               <div className="dropdown ms-3 d-inline">
                 <button
                   className="btn btn-secondary dropdown-toggle"

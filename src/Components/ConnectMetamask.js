@@ -1,32 +1,43 @@
-import React, { useState } from "react";
+import React from "react";
+import "../cssComponent/ConnectMetamask.css"; // Tetap impor file CSS biasa
+import metamaskLogo from "../assets/ui.png";
+import folderLogo from "../assets/logo.png";
 
 function ConnectMetamask({ onConnect }) {
-  const [loading, setLoading] = useState(false);
-
   const connectToMetaMask = async () => {
     if (window.ethereum) {
       try {
-        setLoading(true);
         const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",  // Meminta akun MetaMask
+          method: "eth_requestAccounts",
         });
-        onConnect(accounts[0]); // Kirimkan akun yang terhubung ke App.js
+        const connectedAccount = accounts[0];
+        onConnect(connectedAccount);
       } catch (error) {
         console.error("MetaMask connection error:", error);
-      } finally {
-        setLoading(false);
+        alert("Failed to connect to MetaMask. Please try again.");
       }
     } else {
-      alert("Please install MetaMask to connect.");
+      alert("MetaMask is not installed. Please install MetaMask to continue.");
     }
   };
 
   return (
-    <div>
-      <h2>Connect MetaMask</h2>
-      <button onClick={connectToMetaMask} disabled={loading}>
-        {loading ? "Connecting..." : "Connect with MetaMask"}
-      </button>
+    <div className="connectMetamask-container"> {/* Pastikan hanya di sini */}
+      <div className="content">
+        <h1 className="title">Document Storage</h1>
+        <p className="subtitle">For store your document</p>
+        <button className="connect-button" onClick={connectToMetaMask}>
+          <img
+            src={metamaskLogo}
+            alt="MetaMask Logo"
+            className="metamask-logo"
+          />
+          Connect MetaMask
+        </button>
+      </div>
+      <div className="folder-icon">
+        <img src={folderLogo} alt="Folder Icon" />
+      </div>
     </div>
   );
 }

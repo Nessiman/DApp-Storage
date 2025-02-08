@@ -1,0 +1,61 @@
+/* Gunakan class atau ID untuk membatasi scope hanya di ConnectMetamask */
+.connectMetamask-container * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.connectMetamask-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100vh;
+  padding: 0 50px;
+  background-color: #007bff;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+.connectMetamask-container .content {
+  max-width: 50%;
+}
+
+.connectMetamask-container .title {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.connectMetamask-container .subtitle {
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+}
+
+.connectMetamask-container .connect-button {
+  display: flex;
+  align-items: center;
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background-color: white;
+  color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.connectMetamask-container .connect-button:hover {
+  transform: scale(1.05);
+}
+
+.connectMetamask-container .metamask-logo {
+  height: 32px;
+  margin-right: 10px;
+}
+
+.connectMetamask-container .folder-icon img {
+  height: 500px;
+  margin-right: 70px;
+}
