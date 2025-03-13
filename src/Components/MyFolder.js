@@ -3,135 +3,90 @@ import { useNavigate } from "react-router-dom";
 import { useWeb3 } from "./Web3Context";
 import pinata from "../utils/config";
 import useFavorites from "./FavoritesHandler";
+import { FaTrash, FaSortAlphaDown, FaSortAlphaUp } from "react-icons/fa";
+import FolderList from "./FolderList";
+import FileList from "./FileList";
 import "../cssComponent/MyFolder.css";
 
 function MyFolder({ files = [] }) {
   const [newFolderName, setNewFolderName] = useState("");
   const [showFolderInput, setShowFolderInput] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [fileList, setFileList] = useState(files);
   const [folders, setFolders] = useState([]); // Initialize with an empty array
   const { contract, account } = useWeb3();
+  const [sortBy, setSortBy] = useState("name"); // Default sorting byname
+  const [sortOrder, setSortOrder] = useState("asc"); // Default ascending
   const navigate = useNavigate();
-
-  //manajemen dokumen
   const [searchQuery, setSearchQuery] = useState("");
-  const [fileSortOrder, setFileSortOrder] = useState("asc");
-  const [folderSortOrder, setFolderSortOrder] = useState("asc");
   const { favorites, toggleFavorites, isFavorite } = useFavorites();
+  const [colorLabels, setColorLabels] = useState({}); // Label global warna
+  const [newFolderDescription, setNewFolderDescription] = useState("");
 
-  const handleSortFolders = () => {
-    const newOrder = folderSortOrder === "asc" ? "desc" : "asc";  // Toggle the order
-    setFolderSortOrder(newOrder);  // Update the state for sorting order
   
-    const sortedFolders = [...folders].sort((a, b) => {
-      if (newOrder === "asc") {
-        return a.name.localeCompare(b.name);  // Ascending order (A-Z)
-      } else {
-        return b.name.localeCompare(a.name);  // Descending order (Z-A)
-      }
-    });
-  
-    setFolders(sortedFolders);  // Update the folder list with the sorted order
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+    sortFilesAndFolders(e.target.value, sortOrder);
   };
-  
-  const handleSortFiles = () => {
-    const newOrder = fileSortOrder === "asc" ? "desc" : "asc";  // Toggle order
-    setFileSortOrder(newOrder);  // Update the sort order state
-  
-    // Sort files based on the new order
-    const sortedFiles = [...fileList].sort((a, b) => {
-      if (newOrder === "asc") {
-        return a.name.localeCompare(b.name);  // Ascending order (A-Z)
-      } else {
-        return b.name.localeCompare(a.name);  // Descending order (Z-A)
-      }
-    });
-  
-    setFileList(sortedFiles);  // Update the state with sorted files
+
+  const toggleSortOrder = () => {
+    const newOrder = sortOrder === "asc" ? "desc" : "asc";
+    setSortOrder(newOrder);
+    sortFilesAndFolders(sortBy, newOrder);
   };
-  
+
+  const sortFilesAndFolders = (type, order) => {
+    const sortFunc = (a, b) => {
+      if (type === "date"){
+        const dateA = new Date(a.uploadTime || 0).getTime();
+        const dateB = new Date(b.uploadTime || 0). getTime();
+        return order == "asc" ? dateA - dateB : dateB - dateA;
+      }else{
+        if (!a[type] || !b[type]) return 0; // Pastikan data tersedia
+        if (a[type] < b[type]) return order === "asc" ? -1 : 1;
+        if (a[type] > b[type]) return order === "asc" ? 1 : -1;
+        return 0;
+      }
+    };
+    setFolders([...folders].sort(sortFunc));
+    setFileList([...fileList].sort(sortFunc));
+  };
 
   const filteredFolders = searchQuery
-  ? folders.filter((folder) =>
-      folder.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  : folders; // Menampilkan semua folder jika searchQuery kosong
+    ? folders.filter((folder) =>
+        folder.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : folders; // Menampilkan semua folder jika searchQuery kosong
 
-const filteredFiles = searchQuery
-  ? fileList.filter((file) =>
-      file.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  : fileList; // Menampilkan semua file jika searchQuery kosong
+  const filteredFiles = searchQuery
+    ? fileList.filter((file) =>
+        file.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : fileList; // Menampilkan semua file jika searchQuery kosong
 
-  
-  const fetchFolders = useCallback(async () => {
-    try {
-      const response = await pinata.groups.list();
-      console.log("Response dari API list folders:", response); // Log seluruh response untuk memeriksa struktur data
-      
-      // Periksa apakah data tersedia dan merupakan array yang tidak kosong
-      if (response && Array.isArray(response) && response.length > 0) {
-        setFolders(response); // Set folders dengan data yang valid
-        console.log("State folders diupdate dengan data:", response);
-      } else {
-        console.log("Response tidak sesuai atau tidak ada data:", response); // Log response jika data kosong atau tidak valid
-        setFolders([]); // Set state folders menjadi kosong jika tidak ada data yang valid
-      }
-    } catch (error) {
-      console.error("Error fetching folders:", error);
-      setFolders([]); // Set folders menjadi kosong jika terjadi error
-    }
-  }, []);
-  
-  // Panggil fetchFolders pada useEffect
+  //useEffect untuk Fetch Folder
   useEffect(() => {
-    fetchFolders();
-  }, [fetchFolders]);
-  
+    const fetchFolders = async () => {
+      try {
+        const response = await pinata.groups.list();
+        let fetchedFolders = response.groups || [];
 
-  const handleDeleteFolder = useCallback(async (id) => {
-    console.log("ID folder yang dikirim ke API untuk penghapusan:", id);
-    console.log(typeof id);
-  
-    // Validasi ID
-    if (!id || typeof id !== "string") {
-      console.error("ID folder tidak valid:", id);
-      alert("ID folder tidak valid!");
-      return;
-    }
-  
-    try {
-      // Panggil API untuk menghapus folder
-      const deleteGroups = await pinata.groups.delete(id); // Pastikan API menerima id sebagai parameter
-      console.log("Respons lengkap dari API:", deleteGroups);
-  
-      // Periksa status respons
-      if (deleteGroups.status === 200 || deleteGroups.success) {
-        console.log("Folder berhasil dihapus:", deleteGroups);
-        setFolders((prevFolders) =>
-          prevFolders.filter((folder) => folder.id !== id)
-        );
-        alert("Folder berhasil dihapus!");
-      } else {
-        console.error("Gagal menghapus folder. Respons API tidak sesuai:", deleteGroups);
-        alert("Gagal menghapus folder. Periksa respons API.");
+        const localFolders =  JSON.parse(localStorage.getItem("folders")) || [];
+
+        fetchedFolders = fetchedFolders.map((folder) => {
+          const localFolder = localFolders.find((f) => f.id === folder.id); 
+          return localFolder ? { ...folder, description: localFolder.description } : folder; 
+        });
+        console.log("Folders fetched:", fetchedFolders);
+        setFolders(fetchedFolders);
+      } catch (error) {
+        console.error("Error fetching folders:", error);
+        setFolders([]);
       }
-    } catch (error) {
-      if (error.response) {
-        console.error("Error dari server:", error.response.data);
-        alert("Gagal menghapus folder: " + error.response.data.message);
-      } else if (error.request) {
-        console.error("Tidak ada respons dari server:", error.request);
-        alert("Tidak ada respons dari server. Periksa koneksi Anda.");
-      } else {
-        console.error("Kesalahan:", error.message);
-        alert("Kesalahan: " + error.message);
-      }
-    }
+    };
+    fetchFolders();
   }, []);
-  
+
   // Fungsi untuk membuat folder baru
   const handleCreateFolder = useCallback(async () => {
     if (!newFolderName.trim()) {
@@ -140,50 +95,39 @@ const filteredFiles = searchQuery
     }
 
     try {
-      const response = await pinata.groups.create({ name: newFolderName });
+      const response = await pinata.groups.create({
+        name: newFolderName,
+        description: newFolderDescription,
+      });
 
       if (response && response.group) {
         alert(`Folder "${newFolderName}" berhasil dibuat`);
 
-        const updatedFolders = [...folders, response.group];
+        const newFolder = {
+          ...response.group,
+          description : newFolderDescription,
+        };
+
+        const updatedFolders = [...folders, newFolder];
         console.log("folders : ", updatedFolders);
+        console.log("LocalStorage setelah update:", localStorage.getItem("folders"));
+
         setFolders(updatedFolders);
+        localStorage.setItem("folders", JSON.stringify(updatedFolders));
       } else {
         alert("Terjadi kesalahan dalam membuat folder");
       }
 
       setShowFolderInput(false);
       setNewFolderName("");
+      setNewFolderDescription("");
     } catch (error) {
       console.error("Gagal membuat folder", error.message);
       alert("Terjadi kesalahan. Gagal membuat folder");
     }
-  }, [newFolderName, folders]);
+  }, [newFolderName, newFolderDescription, folders]);
 
-  // Periksa status file apakah sudah diupload
-  const checkFileUploadStatus = useCallback(async () => {
-    if (!contract || !fileList.length) return;
-
-    try {
-      const updatedFileList = await Promise.all(
-        fileList.map(async (file) => {
-          const isUploaded = await contract.methods
-            .isFileUploaded(file.cid)
-            .call();
-          return { ...file, uploaded: isUploaded };
-        })
-      );
-      setFileList(updatedFileList);
-    } catch (error) {
-      console.error("Gagal memuat status upload file", error);
-    }
-  }, [contract, fileList]);
-
-  useEffect(() => {
-    checkFileUploadStatus();
-  }, [checkFileUploadStatus]);
-
-  // Fungsi untuk mengunggah file ke blockchain
+  //untuk upload ke blockchain
   const handleUploadToBlockchain = useCallback(
     async (file) => {
       if (!contract || !account) {
@@ -216,10 +160,11 @@ const filteredFiles = searchQuery
 
         console.log("Transaksi berhasil:", receipt);
 
-        const updatedFiles = fileList.map((f) =>
-          f.cid === file.cid ? { ...f, uploaded: true, description } : f
+        setFileList((prevFiles) =>
+          prevFiles.map((f) =>
+            f.cid === file.cid ? { ...f, uploaded: true, description } : f
+          )
         );
-        setFileList(updatedFiles);
 
         alert(`File ${file.name} berhasil diupload ke blockchain.`);
       } catch (error) {
@@ -229,7 +174,7 @@ const filteredFiles = searchQuery
         setIsUploading(false);
       }
     },
-    [contract, account, fileList]
+    [contract, account, setFileList]
   );
 
   // Fungsi untuk menangani opsi file
@@ -238,10 +183,9 @@ const filteredFiles = searchQuery
       if (option === "detail") {
         navigate(`/document-detail/${document.cid}`);
       } else if (option === "delete") {
-        const updatedFiles = fileList.filter(
-          (file) => file.cid !== document.cid
+        setFileList((prevFiles) =>
+          prevFiles.filter((file) => file.cid !== document.cid)
         );
-        setFileList(updatedFiles);
         alert("Dokumen berhasil dihapus!");
       } else if (option === "upload") {
         handleUploadToBlockchain(document);
@@ -256,10 +200,11 @@ const filteredFiles = searchQuery
             .deleteDocument(document.cid)
             .send({ from: account });
 
-          const updatedFiles = fileList.filter(
-            (file) => file.cid !== document.cid
+          setFileList((prevFiles) =>
+            prevFiles.map((file) =>
+              file.cid === document.cid ? { ...file, uploaded: false } : file
+            )
           );
-          setFileList(updatedFiles);
 
           alert("Dokumen berhasil dihapus dari blockchain!");
         } catch (error) {
@@ -270,10 +215,33 @@ const filteredFiles = searchQuery
         }
       }
     },
-    [fileList, navigate, handleUploadToBlockchain, contract, account]
+    [navigate, handleUploadToBlockchain, contract, account, setFileList]
   );
 
-  // Render status upload
+  // Periksa status file apakah sudah diupload ke blockchain
+  const checkFileUploadStatus = useCallback(async () => {
+    if (!contract || fileList.length === 0) return;
+
+    try {
+      const updatedFileList = await Promise.all(
+        fileList.map(async (file) => {
+          const isUploaded = await contract.methods
+            .isFileUploaded(file.cid)
+            .call();
+          return { ...file, uploaded: isUploaded };
+        })
+      );
+      setFileList(updatedFileList);
+    } catch (error) {
+      console.error("Gagal memuat status upload file", error);
+    }
+  }, [contract, fileList, setFileList]);
+
+  useEffect(() => {
+    checkFileUploadStatus();
+  }, [checkFileUploadStatus]);
+
+  // Render status upload di blockchain
   const renderUploadStatus = (file) =>
     file.uploaded ? (
       <span className="badge bg-success">Uploaded</span>
@@ -283,24 +251,42 @@ const filteredFiles = searchQuery
 
   return (
     <div className="folder-container">
+      <center><h1>My Folder</h1></center>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        {/* Search Input */}
+        <input
+          type="text"
+          className="form-control w-25"
+          placeholder="Search.."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
 
-    <div className="search-bar mb-3">
-      <input 
-      type="text"
-      className="form-control"
-      placeholder="Search folders or files here"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      />
-    </div>
-      <h2>My Folder</h2>
+        {/* Tombol New Folder dan Sorting */}
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowFolderInput(true)}
+          >
+            New Folder
+          </button>
 
-      <button
-        className="btn btn-primary btn-new-folder"
-        onClick={() => setShowFolderInput(true)}
-      >
-        New Folder
-      </button>
+          <div className="sort-container d-flex">
+            <select
+              className="sort-dropdown form-select"
+              value={sortBy}
+              onChange={handleSortChange}
+            >
+              <option value="name">Name</option>
+              <option value="date">Date</option>
+              <option value="type">Type</option>
+            </select>
+            <button className="btn btn-secondary" onClick={toggleSortOrder}>
+              {sortOrder === "asc" ? <FaSortAlphaDown /> : <FaSortAlphaUp />}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {showFolderInput && (
         <div className="mb-3">
@@ -311,8 +297,17 @@ const filteredFiles = searchQuery
             onChange={(e) => setNewFolderName(e.target.value)}
             className="form-control"
           />
-          <button className="btn btn-success mt-2" onClick={handleCreateFolder}>
-            Create Folder
+          <input 
+          type="text"
+          placeholder="Folder Description"
+          value={newFolderDescription}
+          onChange={(e) => setNewFolderDescription(e.target.value)}
+          className="form-control mt-2"/>
+          <button
+            className="btn btn-success mt-2"
+            onClick={handleCreateFolder}
+          >
+            Create
           </button>
           <button
             className="btn btn-secondary mt-2 ms-2"
@@ -323,121 +318,122 @@ const filteredFiles = searchQuery
         </div>
       )}
 
-      <h3>Folders:</h3>
-      <button onClick={handleSortFolders} className="btn btn-link">
-        {folderSortOrder === "asc" ? "A-Z" : "Z-A"}
-      </button>
-      <ul className="list-group folder-list">
-        {folders.length > 0 ? (
-          filteredFolders.map((folder) => (
-            <li
-              key={folder.id || folder.name}
-              className="list-group-item folder-item"
-            >
-              <span
-                className="folder-name"
-                onClick={() =>
-                  navigate(`/folder-page`, { state: { folderData: folder } })
-                }
-              >
-                {folder.name}
-              </span>
-              <button
-                className="btn btn-danger btn-sm ms-2"
-                onClick={() => {
-                  console.log("ID folder yang akan dihapus:", folder.id);
-                  handleDeleteFolder(folder.id); // Gunakan id di sini
-                }}
-              >
-                Delete
-              </button>
-            </li>
-          ))
-         ) : (
-          <p>Tidak ada folder yang tersedia.</p>
-        )}
-      </ul>
+      {/* Kontainer Vertikal */}
+      <div className="content-container-vertical">
+        {/* Folders Section */}
+        <div className="section">
+          <h3>Folders</h3>
+          <div className="scrollable-container">
+            <FolderList folders={filteredFolders} setFolders={setFolders} />
+          </div>
+        </div>
 
-      <h3>All Files:</h3>
-      <button onClick={handleSortFiles} className="btn btn-link">
-        Sort Files {fileSortOrder === "asc" ? "A-Z" : "Z-A"}
-      </button>
-      <ul className="list-group">
-        {filteredFiles.length > 0 ? (
-          filteredFiles.map((file, index) => (
-            <li key={index} className="list-group-item file-item">
-              {file.name} {renderUploadStatus(file)}
-              <div className="dropdown ms-3 d-inline">
-                <button
-                  className="btn btn-secondary dropdown-toggle"
-                  type="button"
-                  data-bs-toggle="dropdown"
-                >
-                  Opsi
-                </button>
-                <ul className="dropdown-menu">
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "detail")}
-                    >
-                      Detail Document
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "delete")}
-                    >
-                      Delete Document
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "upload")}
-                    >
-                      Upload to Blockchain
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() =>
-                        handleDocumentOption(file, "deleteBlockchain")
-                      }
-                    >
-                      Delete from Blockchain
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <button className={`btn btn-${isFavorite(file) ? "danger" : "outline-secondary"} ms-3`} onClick={() => toggleFavorites(file)}>
-                {isFavorite(file) ? "❤️" :  "🤍"}
-              </button>
-            </li>
-          ))
-        ) : (
-          <p>Tidak ada file yang tersedia.</p>
-        )}
-      </ul>
-      <h3>Favorite Files : </h3>
-      <ul className="list-group">
-        {favorites.length > 0 ? (
-          favorites.map((file, index) => (
-            <li key={index} className="list-group-item file-item">
-              {file.name}
-              <button className="btn btn-danger ms-3" onClick={() => toggleFavorites(file)}>❤️</button>
-            </li>  
-          ))
-        ):(
-          <p>no favorites yet</p>
-        )}
-      </ul>
+        {/* Files Section */}
+        <div className="section">
+          <h3>Files</h3>
+          <div className="scrollable-container">
+            <FileList fileList={filteredFiles} setFileList={setFileList}  isFavorite={isFavorite}  toggleFavorites={toggleFavorites}/>
+          </div>
+        </div>
+
+        {/* Favorites Section */}
+        <div className="section">
+          <h3>Favorite Files</h3>
+          <div className="scrollable-container">
+            {favorites.length > 0 ? (
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Favorites</th>
+                    <th>Status Blockchain</th>
+                    <th>Opsi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {favorites.map((file, index) => (
+                    <tr key={index}>
+                      <td>{file.name}</td>
+                      <td>
+                        {file.uploadTime
+                          ? new Date(file.uploadTime).toLocaleDateString()
+                          : "Unknown"}
+                      </td>
+                      <td>{file.type || "Unknown"}</td>
+                      <td>
+                        <button
+                          className="btn"
+                          onClick={() => toggleFavorites(file)}
+                        >
+                          ⭐
+                        </button>
+                      </td>
+                      <td>{renderUploadStatus(file)}</td>
+                      <td>
+                        <div className="dropdown">
+                          <button
+                            className="btn btn-secondary dropdown-toggle"
+                            type="button"
+                            data-bs-toggle="dropdown"
+                          >
+                            Opsi
+                          </button>
+                          <ul className="dropdown-menu">
+                            <li>
+                              <a
+                                className="dropdown-item"
+                                href="#"
+                                onClick={() => alert(`Detail ${file.name}`)}
+                              >
+                                Detail Document
+                              </a>
+                            </li>
+                            <li>
+                              <a
+                                className="dropdown-item"
+                                href="#"
+                                onClick={() => alert(`Delete ${file.name}`)}
+                              >
+                                Delete Document
+                              </a>
+                            </li>
+                            <li>
+                              <a
+                                className="dropdown-item"
+                                href="#"
+                                onClick={() =>
+                                  alert(`Upload ${file.name} to Blockchain`)
+                                }
+                              >
+                                Upload to Blockchain
+                              </a>
+                            </li>
+                            <li>
+                              <a
+                                className="dropdown-item"
+                                href="#"
+                                onClick={() =>
+                                  alert(`Delete ${file.name} from Blockchain`)
+                                }
+                              >
+                                Delete from Blockchain
+                              </a>
+                            </li>
+                          </ul>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-muted">No favorite files yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,20 +1,293 @@
-/* src/cssComponent/DocumentDetail.css */
-.document-detail-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .document-detail {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    width: 300px;
-  }
-  
+/* Dropdown untuk Pilih Tag */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  width: 200px;
+  z-index: 9999;
+}
+
+/* Header Container: Tombol dan Dropdown sejajar */
+/* Header: Menjaga "Back to My Folder" di kiri & Dropdown di kanan */
+.header-container {
+  display: flex;
+  justify-content: space-between; /* Elemen pertama ke kiri, elemen lainnya ke kanan */
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+/* Bagian untuk tombol dan dropdown */
+.right-controls {
+  display: flex;
+  gap: 10px; /* Jarak antara dropdown dan tombol */
+}
+
+
+.title-container {
+  padding: 5px;
+  padding-top: 8px;
+  border: 1ch;
+  border-color: #000000;
+}
+
+/* Dropdown Select untuk Tag */
+.tag-section {
+  display: flex;
+}
+
+.tag-select {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+/* Bagian Tags */
+.tag-list {
+  text-align: center;
+}
+
+.tag {
+  display: inline-block;
+  background-color: #f1f1f1;
+  color: #333;
+  padding: 5px 10px;
+  margin: 5px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.tag:hover {
+  background-color: #ddd;
+}
+
+.remove-tag {
+  background: none;
+  border: none;
+  color: red;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+/* Pastikan tabel tetap rapi */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+td, th {
+  max-width: 300px;
+}
+
+.back-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
+
+.document-title {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.document-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.doc-tab{
+  padding-top: 15px;
+}
+
+.document-table th, .document-table td {
+  border: 1px solid #ddd;
+  padding: 2px;
+  text-align: left;
+}
+
+.space {
+  padding-bottom: 10px;
+}
+
+.document-table th {
+  background-color: #f8f8f8;
+}
+
+.truncate {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-preview {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.preview-image {
+  max-width: 100%;
+  height: auto;
+}
+
+.preview-video {
+  max-width: 100%;
+}
+
+.tebel {
+  color: #0056b3;
+  font-weight: bold;
+}
+
+.log-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 20px;
+}
+
+.log-table {
+  width: 48%;
+}
+
+.log-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.log-table th, .log-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.log-table th {
+  background-color: #f8f8f8;
+}
+
+.title-history {
+  color: #0056b3;
+  font-size: 25px;
+  font-weight: bolder;
+  padding-bottom: 5px;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: transform 0.3s ease-in-out;
+  overflow-y: auto;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* Close Button */
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Warna dalam satu baris */
+.color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Tombol Warna */
+.color-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Button Warna */
+.color-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  cursor: pointer;
+}
+
+.color-btn.active {
+  border: 3px solid black;
+}
+
+/* Label Warna Kosong Secara Default */
+.color-label {
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  min-height: 20px; /* Agar tetap sejajar */
+  visibility: hidden; /* Default kosong */
+}
+
+.color-item input:not(:placeholder-shown) + .color-label {
+  visibility: visible; /* Muncul jika ada input */
+}
+
+
+/* Sidebar Button */
+.sidebar-btn {
+  background:  #2dbb68;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sidebar-btn:hover {
+  background:  #1c964f;
+}
+

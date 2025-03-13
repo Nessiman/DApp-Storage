@@ -36,3 +36,29 @@
 .file-item:hover {
     color: #0056b3; 
 }
+
+  
+  .search-container {
+    margin-bottom: 10px;
+  }
+  
+  .content-container-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .section {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .scrollable-container {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+    border: 1px solid #ddd;
+  }
+  

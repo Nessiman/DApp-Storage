@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import pinata from "../utils/config";
+import CryptoJS from "crypto-js";
 
 function DocumentUpload({ onFileUploaded, account }) {
   const [file, setFile] = useState(null);
@@ -37,12 +38,20 @@ function DocumentUpload({ onFileUploaded, account }) {
       const response = await pinata.upload.file(file);
       console.log("Response dari Pinata:", response);
 
+      const cid = response.IpfsHash;
+
+      const encryptionKey = "your-secret-key"; // Gunakan kunci yang sama untuk dekripsi
+      const encryptedCID = CryptoJS.AES.encrypt(cid, encryptionKey).toString();
+
+
       const uploadTime = new Date().toISOString();
+      
       const fileData = {
         name: file.name,
         size: file.size,
         type: file.type,
-        cid: response.IpfsHash,
+        cid: cid,
+        encryptedCID: encryptedCID,
         mimeType: file.type,
         owner: account,
         description,

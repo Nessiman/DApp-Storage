@@ -1,64 +1,137 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useWeb3 } from "./Web3Context";
-import pinata from "../utils/config"; // Pastikan pinata sudah dikonfigurasi
-import axios from "axios";
+import pinata from "../utils/config";
+import FileList from "./FileList";
+import useFavorites from "./FavoritesHandler";
+import "../cssComponent/FolderPage.css"; // Impor CSS
+
+const colorOptions = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6"]; // Warna tanpa label default
 
 function FolderPage() {
   const [fileList, setFileList] = useState([]);
   const [folderName, setFolderName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [file, setFile] = useState(null);  // Menyimpan file yang akan diupload
+  const [file, setFile] = useState(null);
   const [description, setDescription] = useState("");
+  const [folderColor, setFolderColor] = useState("#ffffff"); 
+  const [colorLabels, setColorLabels] = useState({}); 
+  const [labelInput, setLabelInput] = useState(""); 
+  const [showLabelModal, setShowLabelModal] = useState(false); 
+  const [showModal, setShowModal] = useState(false);
+  const [showUploadSidebar, setShowUploadSidebar] = useState(false);
+  const [showLabelSidebar, setShowLabelSidebar] = useState(false);
   const { state } = useLocation();
-  const { folderData } = state || {}; // Data folder yang dikirim dari MyFolder
+  const { folderData } = state || {};
+  console.log("folderData:", folderData);
   const { contract, account } = useWeb3();
   const navigate = useNavigate();
-
   const groupId = folderData ? folderData.id : null;
+  const { favorites, toggleFavorites, isFavorite } = useFavorites();
+  const { folderId } = useParams(); // Ambil ID folder dari URL
+  const [folder, setFolder] = useState(null);
+
+  useEffect(() => {
+    console.log("showModal:", showModal);
+    console.log("showLabelModal:", showLabelModal);
+  }, [showModal, showLabelModal]);
+
+  useEffect(() => {
+    if (folderData) {
+      setFolderName(folderData.name);
+
+      const storedFolders = JSON.parse(localStorage.getItem("folders")) || [];
+      const storedColors = JSON.parse(localStorage.getItem("folderColors")) || {};
+
+      const foundFolder = storedFolders.find(folder => folder.id === folderData.id);
+      setFolderColor(storedColors[folderData.id] || foundFolder?.color || "#ffffff");
+      setDescription(foundFolder?.description || folderData.description || "Tidak ada deskripsi.");
+      
+      setFileList(folderData.files || []);
+      fetchFilesByGroup();
+    }
+  }, [folderData]);
+
+  useEffect(() => {
+    // Ambil daftar folder dari localStorage
+    const storedFolders = JSON.parse(localStorage.getItem("folders")) || [];
+
+    // Cari folder yang sesuai berdasarkan ID
+    const selectedFolder = storedFolders.find((f) => f.id === folderId);
+
+    if (selectedFolder) {
+      setFolder(selectedFolder);
+      setDescription(selectedFolder.description || "Tidak ada deskripsi");
+    }
+  }, [folderId]);
+
+  // useEffect(() => {
+  //   if (folderData) {
+  //     const storedFolders = JSON.parse(localStorage.getItem("folders")) || [];
+  //     const storedColors = JSON.parse(localStorage.getItem("folderColors")) || {};
+      
+  //     const foundFolder = storedFolders.find(folder => folder.id === folderData.id);
+  //     setFolderColor(storedColors[folderData.id] || foundFolder?.color || "#ffffff");
+  //   }
+  // }, [folderData]);
+  
+
+  // // Simpan warna ke localStorage saat berubah
+  // useEffect(() => {
+  //   if (folderData) {
+  //     const storedFolders = JSON.parse(localStorage.getItem("folders")) || [];
+  //     const updatedFolders = storedFolders.map((folder) =>
+  //       folder.id === folderData.id ? { ...folder, color: folderColor } : folder
+  //     );
+  //     localStorage.setItem("folders", JSON.stringify(updatedFolders));
+  //   }
+  // }, [folderColor, folderData]);
+
+  // Ambil label berdasarkan warna yang dipilih
+  useEffect(() => {
+    setLabelInput(colorLabels[folderColor] || "");
+  }, [folderColor, colorLabels]);
+
+
 
   const fetchFilesByGroup = useCallback(async () => {
     try {
-      console.log("Fetching files by group...");
       if (!folderData || !folderData.id) {
         console.error("Id grup tidak ditemukan");
         return;
       }
-  
+
       const response = await pinata.listFiles().group(folderData.id);
-  
-      // Transform the response to extract relevant file details
-      const fileDetails = response.map((item) => {
-        const fileName = item.metadata?.name || "Unknown File"; // Default jika nama file tidak ada
+
+      const fileDetails = response.map((file) => {
+        const fileName = file.metadata?.name || "Unknown File"; // Default jika nama file tidak ada
         return {
-          id: item.id,
-          ipfsHash: item.ipfs_pin_hash,
-          size: item.size,
-          mimeType: item.mime_type,
-          datePinned: item.date_pinned,
+          id: file.id,
+          ipfsHash: file.ipfs_pin_hash,
+          size: file.size,
+          type: file.mime_type,
+          uploadTime: file.date_pinned,
           fileName, // Nama file dari metadata
+          name: fileName,
         };
       });
-  
-      console.log("File details:", fileDetails);
+
       setFileList(fileDetails);
     } catch (error) {
       console.error("Gagal fetch files by grup:", error);
     }
   }, [folderData]);
-  
-    
+
   useEffect(() => {
     if (folderData) {
-      setFolderName(folderData.name); // Atur nama folder
-      setFileList(folderData.files || []); // Ambil daftar file dari data folder
+      setFolderName(folderData.name);
+      setFileList(folderData.files || []);
       fetchFilesByGroup();
     }
   }, [folderData, fetchFilesByGroup]);
 
   const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
-    setFile(selectedFile);
+    setFile(event.target.files[0]);
   };
 
   const handleDescriptionChange = (event) => {
@@ -71,7 +144,7 @@ function FolderPage() {
       return;
     }
 
-    if(!groupId){
+    if (!groupId) {
       alert("Grup tidak ditemukan");
       return;
     }
@@ -82,20 +155,12 @@ function FolderPage() {
         throw new Error("File yang dipilih tidak valid.");
       }
 
-      // Pastikan akun MetaMask terhubung
       if (!account) {
         alert("MetaMask tidak terhubung!");
         return;
       }
 
-      if(!groupId){
-        alert("Grup tidak ditemukan");
-        return;
-      }
-
-      // Mengunggah file ke IPFS menggunakan Pinata
       const response = await pinata.upload.file(file).group(groupId);
-
       const uploadTime = new Date().toISOString();
 
       const fileData = {
@@ -109,9 +174,11 @@ function FolderPage() {
         uploadTime,
       };
 
-      // Menambahkan file ke folder setelah upload berhasil
-      setFileList([...fileList, fileData]);  // Menambahkan file yang baru diupload ke daftar
+      setFileList([...fileList, fileData]);
       alert("File berhasil diupload ke IPFS!");
+      setShowModal(false); // Tutup modal setelah upload
+      setFile(null);
+      setDescription("");
     } catch (error) {
       console.error("Gagal mengunggah file ke IPFS:", error);
       alert("Terjadi kesalahan saat mengunggah file.");
@@ -120,166 +187,87 @@ function FolderPage() {
     }
   };
 
-  
-  // Fungsi untuk mengunggah file ke blockchain
-  const handleUploadToBlockchain = useCallback(async (file) => {
-    if (!contract || !account) {
-      alert("Kontrak atau akun MetaMask tidak tersedia.");
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-
-      const isUploaded = await contract.methods.isFileUploaded(file.cid).call();
-      if (isUploaded) {
-        alert(`File ${file.name} sudah diupload ke blockchain.`);
-        return;
-      }
-
-      const description = file.description || "Deskripsi default";
-
-      const receipt = await contract.methods
-        .uploadDocument(file.name, file.cid, file.size, file.type, description)
-        .send({ from: account });
-
-      console.log("Transaksi berhasil:", receipt);
-
-      const updatedFiles = fileList.map((f) =>
-        f.cid === file.cid ? { ...f, uploaded: true, description } : f
-      );
-      setFileList(updatedFiles);
-
-      alert(`File ${file.name} berhasil diupload ke blockchain.`);
-    } catch (error) {
-      console.error("Gagal mengupload ke blockchain:", error);
-      alert("Terjadi kesalahan saat mengupload ke blockchain.");
-    } finally {
-      setIsUploading(false);
-    }
-  }, [contract, account, fileList]);
-
-  const handleDocumentOption = useCallback(
-    async (document, option) => {
-      if (option === "detail") {
-        navigate(`/document-detail/${document.cid}`);
-      } else if (option === "delete") {
-        const updatedFiles = fileList.filter((file) => file.cid !== document.cid);
-        setFileList(updatedFiles); // Perbarui state lokal
-        alert("Dokumen berhasil dihapus!");
-      } else if (option === "upload") {
-        handleUploadToBlockchain(document);
-      } else if (option === "deleteBlockchain") {
-        if (!contract || !account) {
-          alert("Kontrak atau akun MetaMask tidak tersedia");
-          return;
-        }
-
-        try {
-          await contract.methods.deleteDocument(document.cid).send({ from: account });
-
-          // Update file list setelah menghapus metadata dari blockchain
-          const updatedFiles = fileList.filter((file) => file.cid !== document.cid);
-          setFileList(updatedFiles);
-
-          alert("Dokumen berhasil dihapus dari blockchain!");
-        } catch (error) {
-          console.log("Terjadi kesalahan dalam menghapus dokumen dari blockchain");
-          alert("Terjadi kesalahan dalam menghapus dokumen dari blockchain");
-        }
-      }
-    },
-    [fileList, navigate, contract, account]
-  );
-
-  const renderUploadStatus = (file) =>
-    file.uploaded ? (
-      <span className="badge bg-success">Uploaded</span>
-    ) : (
-      <span className="badge bg-warning">Not Uploaded</span>
-    );
-
   return (
     <div className="folder-page-container">
-      <h2>{folderName}</h2>
-      <button className="btn btn-secondary mb-3" onClick={() => navigate(-1)}>
-        Back to My Folder
-      </button>
+      <div className="button-container">
+        <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+          Back to My Folder
+        </button>
+        <div className="upload-controls">
+        <button className="upload-btn" onClick={() => setShowUploadSidebar(true)}>
+            Upload File
+          </button>
+          <button className="btn-label" onClick={() => setShowLabelSidebar(true)}>
+            Label
+          </button>
+        </div>
+      </div>
 
-      <h3>Files in this folder:</h3>
-      <ul className="list-group">
-        {fileList.length > 0 ? (
-          fileList.map((file, index) => (
-            <li key={index} className="list-group-item file-item">
-              {file.fileName || "No name"} {renderUploadStatus(file)}
-              <div className="dropdown ms-3 d-inline">
-                <button
-                  className="btn btn-secondary dropdown-toggle"
-                  type="button"
-                  data-bs-toggle="dropdown"
-                >
-                  Opsi
-                </button>
-                <ul className="dropdown-menu">
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "detail")}
-                    >
-                      Detail Document
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "delete")}
-                    >
-                      Delete Document
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "upload")}
-                    >
-                      Upload to Blockchain
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      onClick={() => handleDocumentOption(file, "deleteBlockchain")}
-                    >
-                      Delete from Blockchain
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </li>
-          ))
-        ) : (
-          <p>No files available in this folder.</p>
-        )}
-      </ul>
-
-      <div className="upload-section mt-4">
-        <h3>Upload New Document</h3>
+      {/* Sidebar Upload */}
+      <div className={`sidebar ${showUploadSidebar ? "active" : ""}`}>
+        <div className="sidebar-header">
+          <h3>Upload New Document</h3>
+          <button className="close-btn" onClick={() => setShowUploadSidebar(false)}>
+            &times;
+          </button>
+        </div>
         <input type="file" onChange={handleFileChange} />
         <textarea
           placeholder="Masukkan deskripsi dokumen"
           value={description}
           onChange={handleDescriptionChange}
           rows="3"
-          cols="40"
-        ></textarea><br />
+        ></textarea>
         <button onClick={uploadToIPFS} disabled={isUploading}>
           {isUploading ? "Mengunggah..." : "Upload"}
         </button>
       </div>
+
+      {/* Sidebar Label */}
+      <div className={`sidebar ${showLabelSidebar ? "active" : ""}`}>
+        <div className="sidebar-header">
+          <h3>Atur Label dan Warna</h3>
+          <button className="close-btn" onClick={() => setShowLabelSidebar(false)}>
+            &times;
+          </button>
+        </div>
+
+        <div className="color-options">
+          {colorOptions.map((color) => (
+            <button
+              key={color}
+              className={`color-btn ${folderColor === color ? "active" : ""}`}
+              style={{ backgroundColor: color }}
+              onClick={() => setFolderColor(color)}
+            />
+          ))}
+        </div>
+
+        <input
+          type="text"
+          placeholder="Masukkan label untuk warna ini..."
+          value={labelInput}
+          onChange={(e) => setLabelInput(e.target.value)}
+        />
+        <button onClick={() => {
+          setColorLabels({ ...colorLabels, [folderColor]: labelInput });
+          localStorage.setItem("colorLabels", JSON.stringify({ ...colorLabels, [folderColor]: labelInput }));
+        }}>
+          Simpan Label
+        </button>
+      </div>
+
+      <center style={{ backgroundColor: folderColor }}>
+        <h1>{folderName}</h1>
+        <p>{description || "Tidak ada deskripsi."}</p>
+      </center>
+
+      <FileList
+        fileList={fileList}
+        setFileList={setFileList}
+        toggleFavorites={toggleFavorites}
+        isFavorite={isFavorite}
+      />
     </div>
   );
 }

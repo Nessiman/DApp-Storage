@@ -1,0 +1,174 @@
+.btn-label {
+  background: #2dbb68;
+  color: white;
+}
+
+.btn-label:hover {
+  background: #1c964f;
+  color: white;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 300px;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0px 10px rgba(0, 0, 0, 0.2);
+  transition: right 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.sidebar.active {
+  right: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.upload-btn,
+.btn {
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+.close-btn {
+  cursor: pointer;
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: red;
+}
+
+.upload-btn {
+  background:  #0366d1;
+  color: white;
+}
+
+.upload-btn:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #34495e;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #2c3e50;
+}
+
+.color-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.color-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.color-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.color-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  padding-bottom: 10px;
+}
+
+
+/* 🏷️ Input Label (Dibawah Warna) */
+.label-container {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-direction: column;
+}
+
+.label-container input {
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 100%;
+}
+
+.label-container button {
+  padding: 8px 12px;
+  border: none;
+  background: #2980b9;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.label-container button:hover {
+  background: #1f6690;
+}
+
+.upload-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.upload-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.upload-label {
+  background: #3498db;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.upload-label:hover {
+  background: #2980b9;
+}
+
+.upload-controls button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.upload-controls button:disabled {
+  background: gray;
+  cursor: not-allowed;
+}
