@@ -2,8 +2,11 @@ import React from "react";
 import "../cssComponent/ConnectMetamask.css"; // Tetap impor file CSS biasa
 import metamaskLogo from "../assets/ui.png";
 import folderLogo from "../assets/logo.png";
+import { useNavigate } from "react-router-dom";
 
 function ConnectMetamask({ onConnect }) {
+  const navigate = useNavigate();
+
   const connectToMetaMask = async () => {
     if (window.ethereum) {
       try {
@@ -12,6 +15,7 @@ function ConnectMetamask({ onConnect }) {
         });
         const connectedAccount = accounts[0];
         onConnect(connectedAccount);
+        navigate("/my-folder");
       } catch (error) {
         console.error("MetaMask connection error:", error);
         alert("Failed to connect to MetaMask. Please try again.");
@@ -22,7 +26,7 @@ function ConnectMetamask({ onConnect }) {
   };
 
   return (
-    <div className="connectMetamask-container"> {/* Pastikan hanya di sini */}
+    <div className="connectMetamask-container"> 
       <div className="content">
         <h1 className="title">Document Storage</h1>
         <p className="subtitle">For store your document</p>

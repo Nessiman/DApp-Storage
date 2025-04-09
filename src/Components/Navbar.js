@@ -36,6 +36,11 @@ function Navbar({ account, onLogout }) {
               </Link>
             </li>
             <li className="nav-item">
+              <Link className="nav-link" to="/favorites">
+                Favorites
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link className="nav-link" to="/document-gateway">
                 Document Gateway
               </Link>

@@ -30,6 +30,7 @@ const DocumentDetail = () => {
     "music",
     "video",
     "document",
+    "documentation",
     "report",
     "podcast",
     "project",
@@ -42,6 +43,7 @@ const DocumentDetail = () => {
     "manual",
     "guide",
     "article",
+    "certificate",
     "blog",
     "thesis",
     "dataset",
@@ -95,14 +97,30 @@ const DocumentDetail = () => {
 
   useEffect(() => {
     const fetchDocument = () => {
-      const storedFiles = JSON.parse(localStorage.getItem("ipfsFiles")) || [];
-      const doc = storedFiles.find((file) => file.cid === cid);
-      if (doc) {
-        setDocument(doc);
+      let foundDoc = null;
+    
+      // Loop semua item di localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const storedFiles = JSON.parse(localStorage.getItem(key)) || [];
+    
+        // Jika `storedFiles` adalah array, cari dokumen berdasarkan CID
+        if (Array.isArray(storedFiles)) {
+          const doc = storedFiles.find((file) => file.cid === cid);
+          if (doc) {
+            foundDoc = doc;
+            break; // Berhenti jika dokumen ditemukan
+          }
+        }
+      }
+    
+      if (foundDoc) {
+        setDocument(foundDoc);
       } else {
         alert("Dokumen tidak ditemukan di localStorage!");
       }
     };
+    
 
     const fetchDownloadLog = async () => {
       if (contract && cid) {
@@ -192,8 +210,10 @@ const DocumentDetail = () => {
   </button>
         </div>
       </div>
+
       {showSidebar && (
   <div className="label-panel">
+    <button className="close-btn" onClick={() => setShowSidebar(false)}>❌</button>
     <h3>Label Warna</h3>
     <div className="color-options">
       {colorOptions.map((color) => (
@@ -203,11 +223,7 @@ const DocumentDetail = () => {
             style={{ backgroundColor: color }}
             onClick={() => handleColorChange(color)}
           ></button>
-          {colorLabels[color] ? (
-            <p className="color-label">{colorLabels[color]}</p>
-          ) : (
-            <p className="color-label"></p>
-          )}
+          <p className="color-label">{colorLabels[color] || ""}</p>
         </div>
       ))}
     </div>
@@ -215,15 +231,17 @@ const DocumentDetail = () => {
       <div>
         <input
           type="text"
+          className="label-input"
           placeholder="Masukkan label..."
           value={labelInput}
           onChange={handleLabelChange}
         />
-        <button onClick={saveLabel}>Simpan</button>
+        <button className="save-btn" onClick={saveLabel}>Simpan</button>
       </div>
     )}
   </div>
 )}
+
       <div className="title-container" style={{ backgroundColor: docColor }}>
         <h1>
           <b>

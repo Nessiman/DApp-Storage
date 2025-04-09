@@ -1,126 +1,136 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import pinata from "../utils/config";
+import "../cssComponent/FolderList.css";
+import MyFolder from "./MyFolder";
 
-function FolderList({ folders = [], onDeleteFolder }) {
+function FolderList({ sortBy, sortOrder, onDeleteFolder }) { // ✅ Tambahkan onDeleteFolder sebagai props
   const navigate = useNavigate();
-  const [localFolders, setLocalFolders] = useState(folders);
-  const [colorLabels, setColorLabels] = useState({}); // Simpan label global warna
-  const [folderColors, setFolderColors] = useState({});
+  const [localFolders, setLocalFolders] = useState([]);
+  const [colorLabels, setColorLabels] = useState(() => JSON.parse(localStorage.getItem("colorLabels")) || {});
+  const [folderColors, setFolderColors] = useState(() => JSON.parse(localStorage.getItem("folderColors")) || {});
+  const [folderDescriptions, setFolderDescriptions] = useState(() => JSON.parse(localStorage.getItem("folderDescriptions")) || {});
 
-  // Ambil daftar folder dari API jika tidak ada dari props
+  const isFetching = useRef(false);
+
+  // 📌 Ambil daftar folder dari API
   const fetchFolders = useCallback(async () => {
+    if (isFetching.current) return;
+    isFetching.current = true;
+
     try {
       const response = await pinata.groups.list();
       console.log("Respon dari API list folders:", response);
 
-      if (response && Array.isArray(response) && response.length > 0) {
+      if (Array.isArray(response) && response.length > 0) {
         setLocalFolders(response);
+        localStorage.setItem("folders", JSON.stringify(response));
       } else {
         setLocalFolders([]);
       }
     } catch (error) {
       console.error("Error fetching folders:", error);
       setLocalFolders([]);
+    } finally {
+      isFetching.current = false;
     }
   }, []);
 
-  const handleDeleteFolder = async (folderId) => {
-    try {
-      await pinata.groups.delete(folderId);
-      setLocalFolders((prevFolders) => prevFolders.filter((folder) => folder.id !== folderId));
-
-      // Hapus warna dan label dari localStorage
-      const updatedColors = { ...folderColors };
-      delete updatedColors[folderId];
-
-      const updatedLabels = { ...colorLabels };
-      delete updatedLabels[folderColors[folderId]];
-
-      localStorage.setItem("folders", JSON.stringify(updatedColors));
-      localStorage.setItem("colorLabels", JSON.stringify(updatedLabels));
-
-      setFolderColors(updatedColors);
-      setColorLabels(updatedLabels);
-
-      console.log(`Folder dengan ID ${folderId} berhasil dihapus.`);
-    } catch (error) {
-      console.error("Gagal menghapus folder:", error);
-    }
-  };
-
+  // 📌 Ambil folder dari API saat pertama kali render
   useEffect(() => {
-    if (folders.length === 0) {
+    const cachedFolders = JSON.parse(localStorage.getItem("folders"));
+    if (cachedFolders && cachedFolders.length > 0) {
+      setLocalFolders(cachedFolders);
+    } else {
       fetchFolders();
     }
+  }, [fetchFolders]);
 
-    // Ambil warna dan label dari localStorage
-    const storedFolders = JSON.parse(localStorage.getItem("folders")) || [];
-    const storedLabels = JSON.parse(localStorage.getItem("colorLabels")) || {};
+  // 📌 Gunakan useMemo untuk sorting hanya ketika opsi sorting berubah
+  const sortedFolders = useMemo(() => {
+    if (!sortBy) return localFolders; // Jika tidak ada opsi sorting, tampilkan default
 
-    // Buat objek warna berdasarkan ID folder
-    const colorsMap = {};
-    storedFolders.forEach((folder) => {
-      if (folder.id) {
-        colorsMap[folder.id] = folder.color || "#f8f9fa"; // Warna default
+    return [...localFolders].sort((a, b) => {
+      if (sortBy === "name") {
+        return sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
       }
+      if (sortBy === "date") {
+        return sortOrder === "asc"
+          ? new Date(a.createdAt) - new Date(b.createdAt)
+          : new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return 0;
     });
+  }, [localFolders, sortBy, sortOrder]);
 
-    setFolderColors(colorsMap);
-    setColorLabels(storedLabels);
-  }, [fetchFolders, folders]);
+  // 🔄 Format tanggal ke DD/MM/YY
+  const formatDate = (dateString) => {
+    if (!dateString) return "Unknown";
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}/${date.getFullYear().toString().slice(-2)}`;
+  };
 
   return (
-    <div className="container mt-4">
-    <div className="row g-3">
-      {localFolders.length > 0 ? (
-        localFolders.map((folder) => {
-          const folderColor = folderColors[folder.id] || "#f8f9fa"; // Ambil warna dari state atau gunakan default
-          const folderLabel = colorLabels[folderColor] || ""; // Ambil label warna dari state
+    <div className="folder-list-container">
+      {sortedFolders.length > 0 ? ( // ✅ Gunakan sortedFolders
+        <table className="folder-table">
+          <thead>
+            <tr>
+              <th>Nama Folder</th>
+              <th>ID</th>
+              <th>Deskripsi</th>
+              <th>Date</th>
+              <th>Warna</th>
+              <th>Label</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedFolders.map((folder) => { // ✅ Gunakan sortedFolders, bukan localFolders
+              const folderColor = folderColors[folder.id] || "#f8f9fa";
+              const folderLabel = colorLabels[folder.id]?.label || "-";             
+              const folderDescription = folderDescriptions[folder.id] || "Tidak ada deskripsi";
 
-          return (
-            <div key={folder.id || folder.name} className="col-md-4 col-sm-6 col-12">
-              <div
-                className="card folder-card p-3 d-flex flex-column justify-content-center align-items-center"
-                style={{
-                  backgroundColor: folderColor,
-                  border: "1px solid #4a4c4e",
-                  transition: "background-color 0.3s ease",
-                }}
-                onClick={() => navigate(`/folder-page`, { state: { folderData: folder } })}
-              >
-                <span className="folder-name" style={{ cursor: "pointer", fontWeight: "bold" }}>
-                  {folder.name}
-                </span>
-
-                {/* Tampilkan label jika ada */}
-                {folderLabel && (
-                  <span className="folder-label" style={{ fontSize: "12px", fontWeight: "bold", marginTop: "5px" }}>
-                    {folderLabel}
-                  </span>
-                )}
-
-                <button
-                  className="btn btn-danger btn-sm mt-2"
-                  style={{ width: "32px", height: "32px", borderRadius: "50%" }}
-                  onClick={(e) => {
-                    e.stopPropagation(); // Supaya klik tombol tidak membuka folder
-                    handleDeleteFolder(folder.id);
-                  }}
+              return (
+                <tr
+                  key={folder.id || folder.name}
+                  onClick={() => navigate(`/folder-page`, { state: { folderData: folder } })}
+                  style={{ cursor: "pointer" }}
                 >
-                  <FaTrash size={14} />
-                </button>
-              </div>
-            </div>
-          );
-        })
+                  <td>{folder.name}</td>
+                  <td>{folder.id}</td>
+                  <td>{folderDescription}</td>
+                  <td>{formatDate(folder.createdAt)}</td>
+                  <td>
+                    <div className="color-box" style={{ backgroundColor: folderColor }}></div>
+                  </td>
+                  <td>{folderLabel}</td>
+                  <td>
+                    {onDeleteFolder && (
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteFolder(folder.id);
+                        }}
+                      >
+                        <FaTrash />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       ) : (
         <p className="text-muted">Tidak ada folder yang tersedia.</p>
       )}
     </div>
-  </div>
-);
+  );
 }
 
 export default FolderList;

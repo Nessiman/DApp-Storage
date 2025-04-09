@@ -7,6 +7,7 @@ import DocumentGateway from "./Components/DocumentGateway";
 import Navbar from "./Components/Navbar"; // Import Navbar
 import DocumentDetail from "./Components/DocumentDetail"; // Import DocumentDetail
 import FolderPage from "./Components/FolderPage";
+import FavoritesFiles from "./Components/FavoritesFiles";
 import { Web3Provider } from "./Components/Web3Context";
 
 
@@ -122,6 +123,7 @@ function App() {
                 path="/document-detail/:cid"
                 element={<DocumentDetail />}
               />
+              <Route path="/favorites" element={<FavoritesFiles />} />
               <Route
                 path="/folder-page"
                 element={

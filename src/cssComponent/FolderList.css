@@ -1,0 +1,45 @@
+.folder-list-container {
+  width: 100%;
+  padding: 20px;
+}
+
+.folder-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.folder-table th,
+.folder-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.folder-table th {
+  background-color: #f4f4f4;
+}
+
+.color-box {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  border: 1px solid #ccc;
+}
+
+.delete-btn {
+  background: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.folder-table tbody tr {
+  transition: background-color 0.3s ease;
+}
+
+.folder-table tbody tr:hover {
+  background-color: #bcbcbc; /* Warna biru muda */
+  cursor: pointer;
+}

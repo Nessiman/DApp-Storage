@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWeb3 } from "./Web3Context";
+import "../cssComponent/FileList.css";
 
-function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚úÖ Pakai dari props
+function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) {
+  // ‚úÖ Pakai dari props
   const { contract, account } = useWeb3();
   const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
@@ -17,7 +19,9 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
       try {
         setIsUploading(true);
 
-        const isUploaded = await contract.methods.isFileUploaded(file.cid).call();
+        const isUploaded = await contract.methods
+          .isFileUploaded(file.cid)
+          .call();
         if (isUploaded) {
           alert(`File ${file.name} sudah diupload ke blockchain.`);
           return;
@@ -26,13 +30,21 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
         const description = file.description || "Deskripsi default";
 
         const receipt = await contract.methods
-          .uploadDocument(file.name, file.cid, file.size, file.type, description)
+          .uploadDocument(
+            file.name,
+            file.cid,
+            file.size,
+            file.type,
+            description
+          )
           .send({ from: account });
 
         console.log("Transaksi berhasil:", receipt);
 
         setFileList((prevFiles) =>
-          prevFiles.map((f) => (f.cid === file.cid ? { ...f, uploaded: true, description } : f))
+          prevFiles.map((f) =>
+            f.cid === file.cid ? { ...f, uploaded: true, description } : f
+          )
         );
 
         alert(`File ${file.name} berhasil diupload ke blockchain.`);
@@ -51,7 +63,9 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
       if (option === "detail") {
         navigate(`/document-detail/${document.cid}`);
       } else if (option === "delete") {
-        setFileList((prevFiles) => prevFiles.filter((file) => file.cid !== document.cid));
+        setFileList((prevFiles) =>
+          prevFiles.filter((file) => file.cid !== document.cid)
+        );
         alert("Dokumen berhasil dihapus!");
       } else if (option === "upload") {
         handleUploadToBlockchain(document);
@@ -62,7 +76,9 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
         }
 
         try {
-          await contract.methods.deleteDocument(document.cid).send({ from: account });
+          await contract.methods
+            .deleteDocument(document.cid)
+            .send({ from: account });
 
           setFileList((prevFiles) =>
             prevFiles.map((file) =>
@@ -72,7 +88,9 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
 
           alert("Dokumen berhasil dihapus dari blockchain!");
         } catch (error) {
-          console.log("Terjadi kesalahan dalam menghapus dokumen dari blockchain");
+          console.log(
+            "Terjadi kesalahan dalam menghapus dokumen dari blockchain"
+          );
           alert("Terjadi kesalahan dalam menghapus dokumen dari blockchain");
         }
       }
@@ -81,20 +99,41 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
   );
 
   const checkFileUploadStatus = useCallback(async () => {
-    if (!contract || fileList.length === 0) return;
+    if (!contract || !fileList || fileList.length === 0) return;
 
     try {
+      const validFiles = fileList.filter((file) => file.cid);
+      if (validFiles.length === 0) return;
+
       const updatedFileList = await Promise.all(
-        fileList.map(async (file) => {
-          const isUploaded = await contract.methods.isFileUploaded(file.cid).call();
+        validFiles.map(async (file) => {
+          const isUploaded = await contract.methods
+            .isFileUploaded(file.cid)
+            .call();
           return { ...file, uploaded: isUploaded };
         })
       );
-      setFileList(updatedFileList);
+
+      setFileList((prevFiles) => {
+        const newFileList = prevFiles.map(
+          (file) => updatedFileList.find((f) => f.cid === file.cid) || file
+        );
+
+        // Cek apakah ada perubahan sebelum memanggil setState
+        if (JSON.stringify(prevFiles) === JSON.stringify(newFileList)) {
+          return prevFiles; // Hindari pemanggilan setState jika tidak ada perubahan
+        }
+
+        return newFileList;
+      });
     } catch (error) {
       console.error("Gagal memuat status upload file", error);
     }
-  }, [contract, fileList, setFileList]);
+  }, [contract, JSON.stringify(fileList), setFileList]); // Gunakan JSON.stringify(fileList)
+
+  useEffect(() => {
+    checkFileUploadStatus();
+  }, []); // Jalankan hanya sekali saat komponen mount
 
   useEffect(() => {
     checkFileUploadStatus();
@@ -115,18 +154,36 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
             <th>Nama Dokumen</th>
             <th>Date</th>
             <th>Type</th>
+            <th>Label</th>
+            <th>Tag</th>
             <th>Favorites</th>
-            <th>Status Blockchain</th> 
+            <th>Status Blockchain</th>
             <th>Opsi</th>
           </tr>
         </thead>
         <tbody>
           {fileList.length > 0 ? (
             fileList.map((file, index) => (
-              <tr key={index}>
+              <tr key={file.id || index}>
                 <td>{file.name}</td>
-                <td>{file.uploadTime ? new Date(file.uploadTime).toLocaleDateString() : "Unknown"}</td>
+                <td>
+                  {file.uploadTime
+                    ? new Date(file.uploadTime).toLocaleDateString()
+                    : "Unknown"}
+                </td>
                 <td>{file.type || "Unknown"}</td>
+                <td>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: "20px",
+                      height: "20px",
+                      backgroundColor: file.color || "#ccc",
+                      borderRadius: "4px",
+                    }}
+                  ></span>
+                </td>
+                <td>{file.tag || "-"}</td>
                 <td>
                   <button className="btn" onClick={() => toggleFavorites(file)}>
                     {isFavorite(file) ? "‚≠ê" : "‚òÜ"}
@@ -144,22 +201,40 @@ function FileList({ fileList, setFileList, toggleFavorites, isFavorite }) { // ‚
                     </button>
                     <ul className="dropdown-menu">
                       <li>
-                        <a className="dropdown-item" href="#" onClick={() => handleDocumentOption(file, "detail")}>
+                        <a
+                          className="dropdown-item"
+                          href="#"
+                          onClick={() => handleDocumentOption(file, "detail")}
+                        >
                           Detail Document
                         </a>
                       </li>
                       <li>
-                        <a className="dropdown-item" href="#" onClick={() => handleDocumentOption(file, "delete")}>
+                        <a
+                          className="dropdown-item"
+                          href="#"
+                          onClick={() => handleDocumentOption(file, "delete")}
+                        >
                           Delete Document
                         </a>
                       </li>
                       <li>
-                        <a className="dropdown-item" href="#" onClick={() => handleDocumentOption(file, "upload")}>
+                        <a
+                          className="dropdown-item"
+                          href="#"
+                          onClick={() => handleDocumentOption(file, "upload")}
+                        >
                           Upload to Blockchain
                         </a>
                       </li>
                       <li>
-                        <a className="dropdown-item" href="#" onClick={() => handleDocumentOption(file, "deleteBlockchain")}>
+                        <a
+                          className="dropdown-item"
+                          href="#"
+                          onClick={() =>
+                            handleDocumentOption(file, "deleteBlockchain")
+                          }
+                        >
                           Delete from Blockchain
                         </a>
                       </li>
